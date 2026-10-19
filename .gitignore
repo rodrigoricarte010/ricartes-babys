@@ -1,0 +1,33 @@
+# dependências
+/node_modules
+/.pnp
+.pnp.*
+
+# build
+/.next/
+/out/
+/build
+/dist
+
+# ambiente
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# tipos gerados pelo next
+next-env.d.ts
+
+# caches
+*.tsbuildinfo
+.turbo
+.vercel
