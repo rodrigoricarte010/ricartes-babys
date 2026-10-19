@@ -7,7 +7,7 @@ import { Field, Input, NumberField, Select, Textarea } from "@/components/ui/fie
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toast";
 import { useStore } from "@/lib/store";
-import { BLOOD_TYPES, type Child, type Sex } from "@/lib/types";
+import { BLOOD_TYPES, type Child, type EmergencyContact, type Sex } from "@/lib/types";
 import { KID_COLOR_HEX, type KidColor, cn } from "@/lib/utils";
 import { ChildAvatar } from "@/components/ui/avatar";
 import { toInputDate } from "@/lib/date";
@@ -29,6 +29,12 @@ export interface ChildFormValues {
   color: KidColor;
   notes: string;
   photoDataUrl: string | null;
+  fatherHeightCm: string;
+  motherHeightCm: string;
+  pediatricianName: string;
+  pediatricianPhone: string;
+  healthPlan: string;
+  contacts: EmergencyContact[];
 }
 
 const EMPTY: ChildFormValues = {
@@ -47,6 +53,12 @@ const EMPTY: ChildFormValues = {
   color: "rose",
   notes: "",
   photoDataUrl: null,
+  fatherHeightCm: "",
+  motherHeightCm: "",
+  pediatricianName: "",
+  pediatricianPhone: "",
+  healthPlan: "",
+  contacts: [],
 };
 
 function fromChild(child: Child): ChildFormValues {
@@ -66,6 +78,12 @@ function fromChild(child: Child): ChildFormValues {
     color: (child.color as KidColor) ?? "rose",
     notes: child.notes ?? "",
     photoDataUrl: child.photoDataUrl,
+    fatherHeightCm: child.fatherHeightCm != null ? String(child.fatherHeightCm).replace(".", ",") : "",
+    motherHeightCm: child.motherHeightCm != null ? String(child.motherHeightCm).replace(".", ",") : "",
+    pediatricianName: child.pediatricianName ?? "",
+    pediatricianPhone: child.pediatricianPhone ?? "",
+    healthPlan: child.healthPlan ?? "",
+    contacts: child.emergencyContacts ?? [],
   };
 }
 
@@ -95,6 +113,12 @@ export function ChildForm({
 
   const set = <K extends keyof ChildFormValues>(key: K, value: ChildFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
+
+  const updateContact = (index: number, key: keyof EmergencyContact, value: string) =>
+    setValues((v) => ({
+      ...v,
+      contacts: v.contacts.map((c, i) => (i === index ? { ...c, [key]: value } : c)),
+    }));
 
   const nameError = touched && !values.firstName.trim() ? "Diga o nome da criança." : null;
   const dateError = touched && !values.birthDate ? "A data de nascimento é essencial para as curvas." : null;
@@ -130,6 +154,14 @@ export function ChildForm({
       color: values.color,
       photoDataUrl: values.photoDataUrl,
       notes: values.notes.trim() || null,
+      fatherHeightCm: numOrNull(values.fatherHeightCm),
+      motherHeightCm: numOrNull(values.motherHeightCm),
+      pediatricianName: values.pediatricianName.trim() || null,
+      pediatricianPhone: values.pediatricianPhone.trim() || null,
+      healthPlan: values.healthPlan.trim() || null,
+      emergencyContacts: values.contacts
+        .filter((c) => c.name.trim() || c.phone.trim())
+        .map((c) => ({ name: c.name.trim(), relation: c.relation.trim(), phone: c.phone.trim() })),
       archived: child?.archived ?? false,
     };
 
@@ -278,6 +310,95 @@ export function ChildForm({
           </Field>
         </div>
       </section>
+
+      {/* Saúde, genética e contatos */}
+      <details className="rounded-2xl border border-line bg-bg-muted/30 px-4 py-3">
+        <summary className="cursor-pointer text-sm font-bold text-fg">
+          Saúde e contatos <span className="font-medium text-fg-subtle">(opcional)</span>
+        </summary>
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Altura do pai"
+              unit="cm"
+              value={values.fatherHeightCm}
+              onChange={(e) => set("fatherHeightCm", e.target.value)}
+              placeholder="175"
+              hint="Para a previsão de altura (Tanner)"
+            />
+            <NumberField
+              label="Altura da mãe"
+              unit="cm"
+              value={values.motherHeightCm}
+              onChange={(e) => set("motherHeightCm", e.target.value)}
+              placeholder="162"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Pediatra">
+              <Input value={values.pediatricianName} onChange={(e) => set("pediatricianName", e.target.value)} placeholder="Dra. Camila" />
+            </Field>
+            <Field label="Telefone do pediatra">
+              <Input type="tel" value={values.pediatricianPhone} onChange={(e) => set("pediatricianPhone", e.target.value)} placeholder="(85) 99999-0000" />
+            </Field>
+          </div>
+
+          <Field label="Plano de saúde / referência" hint="Carteirinha, hospital ou UBS de referência">
+            <Input value={values.healthPlan} onChange={(e) => set("healthPlan", e.target.value)} placeholder="Unimed, SUS — UBS do bairro…" />
+          </Field>
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-fg-muted">Contatos de emergência (até 3)</p>
+            <div className="space-y-2">
+              {values.contacts.map((c, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    aria-label={`Nome do contato ${i + 1}`}
+                    placeholder="Nome"
+                    value={c.name}
+                    onChange={(e) => updateContact(i, "name", e.target.value)}
+                  />
+                  <Input
+                    aria-label={`Parentesco do contato ${i + 1}`}
+                    placeholder="Vó, tio…"
+                    className="w-28 shrink-0"
+                    value={c.relation}
+                    onChange={(e) => updateContact(i, "relation", e.target.value)}
+                  />
+                  <Input
+                    aria-label={`Telefone do contato ${i + 1}`}
+                    type="tel"
+                    placeholder="(85) 9…"
+                    className="w-36 shrink-0"
+                    value={c.phone}
+                    onChange={(e) => updateContact(i, "phone", e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remover contato ${i + 1}`}
+                    onClick={() => set("contacts", values.contacts.filter((_, idx) => idx !== i))}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+              ))}
+              {values.contacts.length < 3 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => set("contacts", [...values.contacts, { name: "", relation: "", phone: "" }])}
+                >
+                  + Adicionar contato
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </details>
 
       <Field label="Observações do nascimento" hint="Parto, Apgar, exames do pezinho…">
         <Textarea rows={3} value={values.notes} onChange={(e) => set("notes", e.target.value)} />

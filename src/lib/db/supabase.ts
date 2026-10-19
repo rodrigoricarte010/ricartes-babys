@@ -1,12 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  AppEvent,
-  Child,
-  DiaryEntry,
-  FamilySnapshot,
-  Measurement,
-  Sex,
-} from "@/lib/types";
+import type { AppEvent, Child, DiaryEntry, FamilySnapshot, Measurement, Sex, EmergencyContact } from "@/lib/types";
 import { SNAPSHOT_VERSION } from "@/lib/types";
 import type { DataSource } from "./types";
 import { StorageError } from "./types";
@@ -46,6 +39,14 @@ function toChild(r: Row): Child {
     color: str(r.color),
     photoDataUrl: str(r.photo_data_url),
     notes: str(r.notes),
+    fatherHeightCm: num(r.father_height_cm),
+    motherHeightCm: num(r.mother_height_cm),
+    pediatricianName: str(r.pediatrician_name),
+    pediatricianPhone: str(r.pediatrician_phone),
+    healthPlan: str(r.health_plan),
+    emergencyContacts: Array.isArray(r.emergency_contacts)
+      ? (r.emergency_contacts as EmergencyContact[])
+      : [],
     archived: Boolean(r.archived),
     createdAt: r.created_at ?? new Date().toISOString(),
     updatedAt: r.updated_at ?? new Date().toISOString(),
@@ -71,6 +72,12 @@ function fromChild(c: Child, householdId: string): Row {
     color: c.color,
     photo_data_url: c.photoDataUrl,
     notes: c.notes,
+    father_height_cm: c.fatherHeightCm ?? null,
+    mother_height_cm: c.motherHeightCm ?? null,
+    pediatrician_name: c.pediatricianName ?? null,
+    pediatrician_phone: c.pediatricianPhone ?? null,
+    health_plan: c.healthPlan ?? null,
+    emergency_contacts: c.emergencyContacts ?? [],
     archived: c.archived,
     created_at: c.createdAt,
     updated_at: c.updatedAt,

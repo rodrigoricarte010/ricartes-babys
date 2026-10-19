@@ -97,3 +97,25 @@ export function feverBadgeLabel(tempC: number | null): string | null {
   if (tempC >= LOW_GRADE_THRESHOLD) return "estado febril";
   return null;
 }
+
+/**
+ * Alvo genético de estatura (fórmula de Tanner / altura-alvo parental).
+ * Meninos: (altura do pai + altura da mãe + 13) / 2; meninas: − 13.
+ * Faixa de ±8,5 cm (≈ 2 DP). Referências: SBP e literatura de auxologia.
+ */
+export interface TargetHeight {
+  mid: number;
+  min: number;
+  max: number;
+}
+
+export function targetHeight(
+  sex: "male" | "female",
+  fatherCm: number | null | undefined,
+  motherCm: number | null | undefined,
+): TargetHeight | null {
+  if (!fatherCm || !motherCm) return null;
+  if (fatherCm < 130 || fatherCm > 230 || motherCm < 130 || motherCm > 200) return null;
+  const mid = sex === "male" ? (fatherCm + motherCm + 13) / 2 : (fatherCm + motherCm - 13) / 2;
+  return { mid: Math.round(mid), min: Math.round(mid - 8.5), max: Math.round(mid + 8.5) };
+}

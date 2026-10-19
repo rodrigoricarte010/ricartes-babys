@@ -18,6 +18,12 @@ export const SEX_LABEL: Record<Sex, string> = {
 export type BloodType = "O+" | "O−" | "A+" | "A−" | "B+" | "B−" | "AB+" | "AB−";
 export const BLOOD_TYPES: BloodType[] = ["O+", "O−", "A+", "A−", "B+", "B−", "AB+", "AB−"];
 
+export interface EmergencyContact {
+  name: string;
+  relation: string;
+  phone: string;
+}
+
 export interface Child {
   id: string;
   firstName: string;
@@ -38,6 +44,14 @@ export interface Child {
   color: string | null;
   photoDataUrl: string | null;
   notes: string | null;
+  /** Alturas dos pais (cm) — alvo genético de estatura (Tanner). */
+  fatherHeightCm?: number | null;
+  motherHeightCm?: number | null;
+  /** Cartão de emergência. */
+  pediatricianName?: string | null;
+  pediatricianPhone?: string | null;
+  healthPlan?: string | null;
+  emergencyContacts?: EmergencyContact[];
   archived: boolean;
   createdAt: string;
   updatedAt: string;

@@ -80,6 +80,17 @@ para o pediatra.
   (cada um com sua referência de sexo/idade; a sobreposição é visual).
 - **Mesversários**: recap automático de cada mês completo — ganho de peso e
   estatura, marcos conquistados e ritmo médio de mamadas/sono.
+- **Guia do cocô**: ao registrar a fralda, interpreta cor e consistência pela
+  idade — tranquiliza no que é normal (mecônio, transição, gruminhos do peito)
+  e alerta no que é urgência de verdade (fezes brancas/acinzentadas, sangue,
+  preto após a 1ª semana). Fonte: Caderneta da Criança / SBP.
+- **Resumo do dia no WhatsApp**: um toque gera o resumo do dia em texto
+  (mamadas, sono, fraldas, temperatura, notas) e compartilha pelo dialog
+  nativo — ou copia para colar no WhatsApp do outro cuidador ou do pediatra.
+- **Cartão de emergência**: pediatra, plano de saúde/UBS e até 3 contatos de
+  confiança, com botão de ligar direto — funciona até offline.
+- **Previsão de altura (Tanner)**: alvo genético de estatura pela altura dos
+  pais (faixa ±8,5 cm), com o tom certo de “referência de consultório”.
 
 ### 👨‍‍👧 Várias crianças
 - Cada criança tem suas próprias curvas, marcos e carteira; trocar entre elas é um toque.
@@ -143,8 +154,8 @@ src/
     ├── growth-engine.ts  # carrega as tabelas LMS em chunk separado (lazy)
     ├── analytics.ts      # leituras de rotina (médias, intervalos, ganho de peso)
     ├── vaccine-progress.ts
-    ├── catalog/          # marcos, vacinas PNI/SBIm, alimentos, sono, saltos, atividades
-    ├── health.ts         # guia de febre e sinais de alerta por idade
+    ├── catalog/          # marcos, vacinas, alimentos, sono, saltos, atividades, guia do cocô
+    ├── health.ts         # guia de febre, sinais de alerta e alvo de estatura (Tanner)
     ├── db/               # adaptadores de persistência (local / supabase) + seed
     └── store.tsx         # estado global otimista da família
 supabase/schema.sql       # tabelas + Row Level Security

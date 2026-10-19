@@ -58,12 +58,26 @@ create table if not exists public.children (
   color text,
   photo_data_url text,
   notes text,
+  father_height_cm numeric(5,2),
+  mother_height_cm numeric(5,2),
+  pediatrician_name text,
+  pediatrician_phone text,
+  health_plan text,
+  emergency_contacts jsonb not null default '[]'::jsonb,
   archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists children_household_idx on public.children (household_id);
+
+-- Para bancos criados com versões anteriores do schema (atualização idempotente)
+alter table public.children add column if not exists father_height_cm numeric(5,2);
+alter table public.children add column if not exists mother_height_cm numeric(5,2);
+alter table public.children add column if not exists pediatrician_name text;
+alter table public.children add column if not exists pediatrician_phone text;
+alter table public.children add column if not exists health_plan text;
+alter table public.children add column if not exists emergency_contacts jsonb not null default '[]'::jsonb;
 
 -- ── Medições de crescimento ──────────────────────────────────────────────
 create table if not exists public.measurements (

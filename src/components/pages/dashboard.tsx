@@ -27,6 +27,7 @@ import { EmptyState, SkeletonCard } from "@/components/ui/empty-state";
 import { ChildAvatar } from "@/components/ui/avatar";
 import { EventRow } from "@/components/routine/event-bits";
 import { LeapCard, SleepPredictorCard } from "@/components/routine/insights";
+import { EmergencyCard } from "@/components/dashboard/emergency-card";
 import { GrowthStatCards, GrowthContextLine, useGrowthSummary } from "@/components/growth/growth-summary";
 import { GrowthChart } from "@/components/growth/growth-chart";
 import { useLog } from "@/components/log/log-provider";
@@ -309,6 +310,7 @@ export function Dashboard() {
         <div className="grid gap-5 lg:grid-cols-2">
           <SleepPredictorCard />
           <LeapCard />
+          <EmergencyCard />
         </div>
 
         {/* Linha do tempo */}

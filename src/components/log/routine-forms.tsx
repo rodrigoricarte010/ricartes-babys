@@ -12,6 +12,7 @@ import type { AppEvent, FeedingMethod, SleepType, DiaperType, FoodReaction } fro
 import { toInputDateTime, durationLabel, addDays } from "@/lib/date";
 import { ALLERGENS, FOOD_GROUPS, REACTION_LABEL } from "@/lib/catalog/foods";
 import { FeverGuidanceCard } from "@/components/routine/fever-card";
+import { StoolGuidanceCard } from "@/components/routine/stool-card";
 import { PhotoPicker } from "@/components/ui/photo-picker";
 import { ageInDays } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -421,7 +422,18 @@ export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps
 
 // ── Fralda ──────────────────────────────────────────────────────
 
-const STOOL_COLORS = ["amarelo-mostarda", "amarelo-claro", "marrom-claro", "marrom", "esverdeado", "com pontinhos brancos"];
+const STOOL_COLORS = [
+  "amarelo-mostarda",
+  "amarelo-claro",
+  "marrom-claro",
+  "marrom",
+  "esverdeado",
+  "verde-escuro",
+  "com pontinhos brancos",
+  "preto",
+  "esbranquiçado / cinza",
+  "com sangue / avermelhado",
+];
 const STOOL_TEXTURES = ["líquida", "pastosa", "com gruminhos", "formada", "com muco"];
 
 export interface DiaperFormProps {
@@ -533,6 +545,14 @@ export function DiaperForm({ open, onClose, editing }: DiaperFormProps) {
               </Select>
             </Field>
           </div>
+        )}
+
+        {type !== "wet" && activeChild && (
+          <StoolGuidanceCard
+            ageDays={ageInDays(activeChild.birthDate, new Date())}
+            color={stoolColor}
+            texture={stoolTexture}
+          />
         )}
 
         <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-bg-muted/50 px-3.5 py-2.5">

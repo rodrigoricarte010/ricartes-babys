@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Droplets, Milk, Moon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Droplets, Milk, Moon, Share2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/app-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat, Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/analytics";
 import { addDays, dayKey, durationLabel, isSameDay, startOfDay, fmtWeekday } from "@/lib/date";
 import { num, sortBy, cn } from "@/lib/utils";
+import { buildDaySummaryText, shareOrCopy } from "@/lib/share";
 
 /** Barras simples, sem dependência — suficientes para ler padrão semanal. */
 function MiniBars({
@@ -70,6 +71,15 @@ export function RotinaPage() {
 
   const dayEvents = useMemo(() => sortBy(eventsOn(events, day), (e) => e.startedAt).reverse(), [events, day]);
   const summary = useMemo(() => summarizeDay(events, day), [events, day]);
+
+  async function shareDay() {
+    if (!child) return;
+    const text = buildDaySummaryText(child, summary, dayEvents);
+    const result = await shareOrCopy(text);
+    if (result === "shared") toast.success("Resumo compartilhado. 💛");
+    else if (result === "copied") toast.success("Resumo copiado — é só colar no WhatsApp. 📋");
+    else toast.error("Não consegui compartilhar neste navegador.");
+  }
   const series = useMemo(() => dailySeries(events, 7), [events]);
   const week = useMemo(() => weeklyAverages(series), [series]);
   const interval = useMemo(() => averageFeedingIntervalHours(events, 3, day), [events, day]);
@@ -100,10 +110,16 @@ export function RotinaPage() {
         title="Rotina"
         subtitle={`${child.nickname || child.firstName} · dia a dia`}
         actions={
-          <Button size="sm" onClick={() => log.open("feeding")}>
-            <Milk className="size-3.5" aria-hidden />
-            Registrar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => void shareDay()} aria-label="Compartilhar resumo do dia">
+              <Share2 className="size-3.5" aria-hidden />
+              <span className="max-sm:hidden">Resumo</span>
+            </Button>
+            <Button size="sm" onClick={() => log.open("feeding")}>
+              <Milk className="size-3.5" aria-hidden />
+              Registrar
+            </Button>
+          </div>
         }
       />
 

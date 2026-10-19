@@ -10,6 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Field, Select } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GrowthChart, type MeasuredPoint, type OverlaySeries } from "@/components/growth/growth-chart";
+import { TargetHeightCard } from "@/components/growth/target-height-card";
 import { useGrowthEngine } from "@/lib/growth-engine";
 import { useStore } from "@/lib/store";
 import { useLog } from "@/components/log/log-provider";
@@ -225,6 +226,8 @@ export function CrescimentoPage() {
             />
           </div>
         )}
+
+        <TargetHeightCard child={child} />
 
         <Card>
           <CardHeader title="Histórico de medições" subtitle={`${points.length} registros de ${meta.label.toLowerCase()}`} />
