@@ -39,7 +39,7 @@ const CATEGORY_ORDER: Array<keyof typeof CATEGORY_LABEL> = [
 ];
 
 export function MarcosPage() {
-  const { activeChild: child, events, createEvent, removeEvent } = useStore();
+  const { activeChild: child, events, createEvent, removeEvent, readOnly } = useStore();
   const toast = useToast();
   const [openAge, setOpenAge] = useState<number | null>(null);
   const [showFlags, setShowFlags] = useState(false);
@@ -76,6 +76,10 @@ export function MarcosPage() {
   const totalAchieved = achieved.size;
 
   function toggle(milestone: Milestone) {
+    if (readOnly) {
+      toast.info("Modo visita ativo — desative em Configurações para registrar.");
+      return;
+    }
     const existing = achieved.get(milestone.key);
     if (existing) {
       void removeEvent(existing.id).then(() => toast.info("Marco desmarcado."));
@@ -315,7 +319,7 @@ function CheckpointCard({
 
 /** Botão que anexa uma foto a um marco já conquistado. */
 function MilestonePhotoButton({ eventId }: { eventId: string }) {
-  const { events, upsertEvent } = useStore();
+  const { events, upsertEvent, readOnly } = useStore();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -334,6 +338,8 @@ function MilestonePhotoButton({ eventId }: { eventId: string }) {
       setBusy(false);
     }
   }
+
+  if (readOnly) return null;
 
   return (
     <>

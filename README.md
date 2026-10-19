@@ -91,6 +91,17 @@ para o pediatra.
   confiança, com botão de ligar direto — funciona até offline.
 - **Previsão de altura (Tanner)**: alvo genético de estatura pela altura dos
   pais (faixa ±8,5 cm), com o tom certo de “referência de consultório”.
+- **Padrões da semana**: mapa de calor hora × dia dos últimos 7 dias (sono ou
+  mamadas) — a ideia do "sweet spot" do Huckleberry: os padrões que a cabeça
+  não percebe na linha do tempo viram desenho, com o horário de pico apontado.
+- **Equilíbrio do peito**: quanto cada lado trabalhou hoje, em barra
+  esquerda/direita, com dica de qual oferecer primeiro se houver assimetria.
+- **Modo visita (somente leitura)**: trava registros e edições naquele
+  aparelho — avó e babá acompanham tudo sem alterar nada. Barreira dupla:
+  a UI esconde as ações e o store rejeita qualquer mutação.
+- **Lembretes com notificação**: aviso diário de pesar/medir no horário
+  escolhido e alerta de vacina atrasada/vencendo em 7 dias — notificações
+  locais do navegador, sem servidor de push, disparadas com o app aberto.
 
 ### 👨‍‍👧 Várias crianças
 - Cada criança tem suas próprias curvas, marcos e carteira; trocar entre elas é um toque.

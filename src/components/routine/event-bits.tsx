@@ -21,6 +21,7 @@ import { MILESTONE_BY_KEY } from "@/lib/catalog/milestones";
 import { VACCINE_BY_KEY } from "@/lib/catalog/vaccines";
 import { REACTION_LABEL } from "@/lib/catalog/foods";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
 
 /** Metadados visuais por tipo de evento — usados na linha do tempo e nos cards. */
 export function eventIcon(kind: AppEvent["kind"]): LucideIcon {
@@ -141,6 +142,7 @@ export function EventRow({
   trailing?: ReactNode;
   className?: string;
 }) {
+  const { readOnly } = useStore();
   const Icon = eventIcon(event.kind);
   const isFuture = toDate(event.startedAt).getTime() > Date.now();
 
@@ -167,7 +169,7 @@ export function EventRow({
         )}
       </div>
       {trailing}
-      {(onEdit || onDelete) && (
+      {!readOnly && (onEdit || onDelete) && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-100">
           {onEdit && (
             <button type="button" onClick={onEdit} aria-label="Editar" className="grid size-8 place-items-center rounded-lg text-fg-subtle hover:bg-bg-muted hover:text-fg">

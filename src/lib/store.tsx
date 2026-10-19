@@ -30,8 +30,13 @@ import { sortBy } from "@/lib/utils";
  */
 
 const ACTIVE_CHILD_KEY = "rb:active-child";
+const READ_ONLY_KEY = "rb:read-only";
 
 interface StoreValue {
+  /** Modo visita: bloqueia todas as mutações NESTE aparelho. */
+  readOnly: boolean;
+  setReadOnly: (v: boolean) => void;
+
   ready: boolean;
   mode: StorageMode;
   online: boolean;
@@ -185,10 +190,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ── Modo visita (somente leitura neste aparelho) ─────────────
+  const [readOnly, setReadOnlyState] = useState(false);
+  const readOnlyRef = useRef(false);
+
+  useEffect(() => {
+    setReadOnlyState(window.localStorage.getItem(READ_ONLY_KEY) === "1");
+  }, []);
+
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+  }, [readOnly]);
+
+  const setReadOnly = useCallback((v: boolean) => {
+    setReadOnlyState(v);
+    if (v) window.localStorage.setItem(READ_ONLY_KEY, "1");
+    else window.localStorage.removeItem(READ_ONLY_KEY);
+  }, []);
+
+  /** Barreira de segurança: nenhuma mutação passa com o modo visita ativo. */
+  const assertWritable = useCallback(() => {
+    if (readOnlyRef.current) {
+      throw new Error("Modo visita ativo — desative em Configurações para editar.");
+    }
+  }, []);
+
   // ── Mutações ────────────────────────────────────────────────
 
   const upsertChild = useCallback(
     async (child: Child) => {
+      assertWritable();
       const next = { ...child, updatedAt: nowStamp() };
       setAllChildren((prev) => {
         const idx = prev.findIndex((c) => c.id === next.id);
@@ -202,7 +233,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await getDataSource().saveChild(next);
       });
     },
-    [withError, setActiveChildIdState],
+    [withError, setActiveChildIdState, assertWritable],
   );
 
   const createChild = useCallback(
@@ -218,17 +249,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeChild = useCallback(
     async (id: string) => {
+      assertWritable();
       setAllChildren((prev) => prev.filter((c) => c.id !== id));
       await withError(async () => {
         await getDataSource().deleteChild(id);
       });
       if (activeChildId === id) setActiveChildId(null);
     },
-    [withError, activeChildId, setActiveChildId],
+    [withError, activeChildId, setActiveChildId, assertWritable],
   );
 
   const upsertMeasurement = useCallback(
     async (measurement: Measurement) => {
+      assertWritable();
       const next = { ...measurement, updatedAt: nowStamp() };
       setMeasurements((prev) => {
         const idx = prev.findIndex((m) => m.id === next.id);
@@ -241,7 +274,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await getDataSource().saveMeasurement(next);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const createMeasurement = useCallback(
@@ -256,16 +289,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeMeasurement = useCallback(
     async (id: string) => {
+      assertWritable();
       setMeasurements((prev) => prev.filter((m) => m.id !== id));
       await withError(async () => {
         await getDataSource().deleteMeasurement(id);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const upsertEvent = useCallback(
     async (event: AppEvent) => {
+      assertWritable();
       const next = { ...event, updatedAt: nowStamp() };
       setEvents((prev) => {
         const idx = prev.findIndex((e) => e.id === next.id);
@@ -278,7 +313,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await getDataSource().saveEvent(next);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const createEvent = useCallback(
@@ -299,16 +334,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeEvent = useCallback(
     async (id: string) => {
+      assertWritable();
       setEvents((prev) => prev.filter((e) => e.id !== id));
       await withError(async () => {
         await getDataSource().deleteEvent(id);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const upsertDiary = useCallback(
     async (entry: DiaryEntry) => {
+      assertWritable();
       const next = { ...entry, updatedAt: nowStamp() };
       setDiary((prev) => {
         const idx = prev.findIndex((d) => d.id === next.id);
@@ -321,7 +358,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await getDataSource().saveDiary(next);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const createDiary = useCallback(
@@ -342,12 +379,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeDiary = useCallback(
     async (id: string) => {
+      assertWritable();
       setDiary((prev) => prev.filter((d) => d.id !== id));
       await withError(async () => {
         await getDataSource().deleteDiary(id);
       });
     },
-    [withError],
+    [withError, assertWritable],
   );
 
   const value = useMemo<StoreValue>(
@@ -376,6 +414,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       upsertDiary,
       createDiary,
       removeDiary,
+      readOnly,
+      setReadOnly,
     }),
     [
       ready,
@@ -402,6 +442,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       upsertDiary,
       createDiary,
       removeDiary,
+      readOnly,
+      setReadOnly,
     ],
   );
 

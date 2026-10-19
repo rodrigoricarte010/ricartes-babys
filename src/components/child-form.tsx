@@ -99,7 +99,7 @@ export function ChildForm({
   onSaved?: (child: Child) => void;
   onCancel?: () => void;
 }) {
-  const { createChild, upsertChild, removeChild } = useStore();
+  const { createChild, upsertChild, removeChild, readOnly } = useStore();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -135,6 +135,10 @@ export function ChildForm({
   }
 
   async function submit() {
+    if (readOnly) {
+      toast.info("Modo visita ativo — desative em Configurações para editar.");
+      return;
+    }
     setTouched(true);
     if (!values.firstName.trim() || !values.birthDate) return;
 
@@ -182,7 +186,7 @@ export function ChildForm({
   }
 
   async function handleDelete() {
-    if (!child) return;
+    if (!child || readOnly) return;
     try {
       await removeChild(child.id);
       toast.success("Registro removido.");

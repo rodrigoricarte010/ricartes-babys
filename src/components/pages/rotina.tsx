@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { EventRow } from "@/components/routine/event-bits";
 import { SleepPredictorCard } from "@/components/routine/insights";
 import { TodayFeverCard } from "@/components/routine/fever-card";
+import { WeekPatternCard } from "@/components/routine/week-pattern";
+import { BreastBalanceCard } from "@/components/routine/breast-balance";
 import { useStore } from "@/lib/store";
 import { useLog } from "@/components/log/log-provider";
 import { isLogKind } from "@/components/log/types";
@@ -171,6 +173,9 @@ export function RotinaPage() {
         )}
 
         {/* Linha do tempo do dia */}
+        <BreastBalanceCard />
+        <WeekPatternCard />
+
         <Card>
           <CardHeader title="Linha do tempo" subtitle={`${dayEvents.length} registros neste dia`} />
           <CardBody className="pt-1">

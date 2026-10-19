@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Baby,
+  BellRing,
   Cloud,
   Database,
   Download,
@@ -31,14 +32,45 @@ import { clearLocalData, downloadSnapshot, getDataSource, parseSnapshot } from "
 import { isCloudConfigured, CLOUD_HINT } from "@/lib/supabase/config";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { formatAge } from "@/lib/date";
+import {
+  DEFAULT_REMINDERS,
+  loadReminders,
+  notificationsSupported,
+  saveReminders,
+  type ReminderSettings,
+} from "@/lib/reminders";
 
 export function ConfiguracoesPage() {
-  const { children: kids, mode, online, reload, restoreDemo, ready } = useStore();
+  const { children: kids, mode, online, reload, restoreDemo, ready, readOnly, setReadOnly } = useStore();
   const { theme, setTheme } = useTheme();
   const toast = useToast();
   const importRef = useRef<HTMLInputElement>(null);
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reminders, setRemindersState] = useState<ReminderSettings>(DEFAULT_REMINDERS);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+
+  useEffect(() => {
+    if (!notificationsSupported()) {
+      setPermission("unsupported");
+      return;
+    }
+    setPermission(Notification.permission);
+    setRemindersState(loadReminders());
+  }, []);
+
+  function updateReminders(next: ReminderSettings) {
+    setRemindersState(next);
+    saveReminders(next);
+  }
+
+  async function requestPermission() {
+    if (!notificationsSupported()) return;
+    const result = await Notification.requestPermission();
+    setPermission(result);
+    if (result === "granted") toast.success("Notificações ativadas neste aparelho. 🔔");
+    else if (result === "denied") toast.error("O navegador bloqueou as notificações.");
+  }
 
   async function exportBackup() {
     setBusy(true);
@@ -215,6 +247,93 @@ export function ConfiguracoesPage() {
             <div className="mt-3 flex items-center gap-2">
               <ThemeToggle />
               <span className="text-xs text-fg-subtle">Alterna rapidamente pelo ícone.</span>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Visita e lembretes */}
+        <Card>
+          <CardHeader
+            title="Visita e lembretes"
+            subtitle="Somente leitura para visitas e avisos neste aparelho"
+            icon={<BellRing className="size-4.5" />}
+          />
+          <CardBody className="space-y-3 pt-2">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-bg-muted/40 px-3.5 py-3">
+              <input
+                type="checkbox"
+                checked={readOnly}
+                onChange={(e) => {
+                  setReadOnly(e.target.checked);
+                  toast.info(e.target.checked ? "Modo visita ativado — ninguém altera nada aqui." : "Modo visita desativado.");
+                }}
+                className="mt-0.5 size-4.5 shrink-0 accent-[var(--color-brand-500)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-fg">Modo visita (somente leitura)</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-fg-subtle">
+                  Trava registros e edições neste aparelho — a avó e a babá podem acompanhar tudo
+                  sem alterar nada. Seus dados continuam intactos; é só desmarcar para voltar a registrar.
+                </span>
+              </span>
+            </label>
+
+            <div className="rounded-xl border border-line bg-bg-muted/40 px-3.5 py-3">
+              <p className="text-sm font-bold text-fg">Lembretes com notificação 🔔</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-fg-subtle">
+                Disparam enquanto o app estiver aberto (o PWA instalado conta como aberto) e valem
+                só neste aparelho — nada vai para a internet.
+              </p>
+
+              {permission === "unsupported" ? (
+                <p className="mt-2 text-xs text-fg-subtle">Este navegador não oferece notificações.</p>
+              ) : permission !== "granted" ? (
+                <Button
+                  size="sm"
+                  variant={permission === "denied" ? "ghost" : "outline"}
+                  className="mt-3"
+                  disabled={permission === "denied"}
+                  onClick={() => void requestPermission()}
+                >
+                  {permission === "denied"
+                    ? "Notificações bloqueadas no navegador"
+                    : "Ativar notificações"}
+                </Button>
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  <label className="flex flex-wrap items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={reminders.weighTime != null}
+                      onChange={(e) =>
+                        updateReminders({ ...reminders, weighTime: e.target.checked ? (reminders.weighTime ?? "09:00") : null })
+                      }
+                      className="size-4.5 shrink-0 accent-[var(--color-brand-500)]"
+                    />
+                    <span className="text-sm font-semibold text-fg">Lembrar de pesar/medir todo dia às</span>
+                    {reminders.weighTime != null && (
+                      <input
+                        type="time"
+                        value={reminders.weighTime}
+                        onChange={(e) => updateReminders({ ...reminders, weighTime: e.target.value })}
+                        className="rounded-lg border border-line-strong bg-bg-elevated px-2 py-1 text-xs tabular text-fg focus:border-brand-400 focus:outline-none"
+                        aria-label="Horário do lembrete de medida"
+                      />
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={reminders.vaccineAlert}
+                      onChange={(e) => updateReminders({ ...reminders, vaccineAlert: e.target.checked })}
+                      className="size-4.5 shrink-0 accent-[var(--color-brand-500)]"
+                    />
+                    <span className="text-sm font-semibold text-fg">
+                      Avisar de vacinas atrasadas ou vencendo em 7 dias
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>

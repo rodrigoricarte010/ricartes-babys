@@ -5,6 +5,7 @@ import { StoreProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui/toast";
 import { LogProvider } from "@/components/log/log-provider";
 import { registerServiceWorker } from "@/lib/pwa";
+import { ReminderWatcher } from "@/components/layout/reminder-watcher";
 
 /**
  * Tema claro/escuro.
@@ -73,6 +74,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <ToastProvider>
         <StoreProvider>
           <LogProvider>{children}</LogProvider>
+          <ReminderWatcher />
         </StoreProvider>
       </ToastProvider>
     </ThemeContext.Provider>

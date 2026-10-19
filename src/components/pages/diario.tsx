@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 const MOODS: Array<NonNullable<DiaryEntry["mood"]>> = ["otimo", "bem", "neutro", "dificil", "ruim"];
 
 export function DiarioPage() {
-  const { activeChild: child, diary, createDiary, upsertDiary, removeDiary } = useStore();
+  const { activeChild: child, diary, createDiary, upsertDiary, removeDiary, readOnly } = useStore();
   const toast = useToast();
 
   const [editing, setEditing] = useState<DiaryEntry | null>(null);
@@ -43,16 +43,18 @@ export function DiarioPage() {
         title="Diário"
         subtitle={`${child.nickname || child.firstName} · memórias que o tempo apaga`}
         actions={
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="size-3.5" aria-hidden />
-            Escrever
-          </Button>
+          readOnly ? undefined : (
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              <Plus className="size-3.5" aria-hidden />
+              Escrever
+            </Button>
+          )
         }
       />
 
@@ -65,7 +67,9 @@ export function DiarioPage() {
             title="Ainda não há memórias escritas"
             description="O primeiro sorriso, a primeira noite inteira, aquela frase engraçada. Registre agora — no futuro, você vai agradecer."
             action={
-              <Button onClick={() => { setEditing(null); setOpen(true); }}>Escrever a primeira</Button>
+              readOnly ? undefined : (
+                <Button onClick={() => { setEditing(null); setOpen(true); }}>Escrever a primeira</Button>
+              )
             }
           />
         </Card>
@@ -82,6 +86,7 @@ export function DiarioPage() {
                 }
                 subtitle={fmtDate(entry.date)}
                 action={
+                  readOnly ? undefined : (
                   <div className="flex items-center gap-0.5">
                     <button type="button" aria-label="Editar" onClick={() => { setEditing(entry); setOpen(true); }} className="grid size-8 place-items-center rounded-lg text-fg-subtle hover:bg-bg-muted hover:text-fg">
                       <Pencil className="size-3.5" aria-hidden />
@@ -98,6 +103,7 @@ export function DiarioPage() {
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>
                   </div>
+                  )
                 }
               />
               <CardBody className="pt-2">

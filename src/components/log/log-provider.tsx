@@ -117,6 +117,7 @@ const ICONS: Record<string, LucideIcon> = {
 
 export function LogProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
+  const { readOnly } = useStore();
 
   const [openKind, setOpenKind] = useState<LogKind | null>(null);
   const [editing, setEditing] = useState<AppEvent | Measurement | null>(null);
@@ -138,11 +139,15 @@ export function LogProvider({ children }: { children: ReactNode }) {
   }, [timer]);
 
   const open = useCallback((kind: LogKind, opts?: OpenOptions) => {
+    if (readOnly) {
+      toast.info("Modo visita ativo — desative em Configurações para registrar.");
+      return;
+    }
     setEditing(opts?.editing ?? null);
     setPresetMethod(opts?.method);
     setPresetDuration(opts?.durationMin ?? null);
     setOpenKind(kind);
-  }, []);
+  }, [readOnly, toast]);
 
   const close = useCallback(() => {
     setOpenKind(null);
