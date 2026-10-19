@@ -5,6 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import { useStore } from "@/lib/store";
 import type { AppEvent } from "@/lib/types";
 import { toInputDateTime } from "@/lib/date";
@@ -25,9 +26,11 @@ export function AppointmentForm({ open, onClose, editing }: AppointmentFormProps
   const [when, setWhen] = useState("");
   const [done, setDone] = useState(false);
   const [note, setNote] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setTitle((payload.title as string) ?? "");
     setDoctor((payload.doctor as string) ?? "");
@@ -47,7 +50,7 @@ export function AppointmentForm({ open, onClose, editing }: AppointmentFormProps
       durationMin: null,
       payload: { title: title.trim(), doctor: doctor.trim() || null, place: place.trim() || null, done },
       note: note.trim() || null,
-      photos: editing?.photos ?? [],
+      photos,
     };
     try {
       if (editing) await upsertEvent({ ...editing, ...draft });
@@ -106,6 +109,8 @@ export function AppointmentForm({ open, onClose, editing }: AppointmentFormProps
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="O que levar, o que perguntar…" />
         </Field>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
       </div>
     </Dialog>
   );

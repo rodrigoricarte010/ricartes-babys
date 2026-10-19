@@ -12,7 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { MOOD_EMOJI, MOOD_LABEL } from "@/lib/analytics";
-import { readImageAsDataUrl } from "@/components/child-form";
+import { readImageAsDataUrl, RECORD_PHOTO_SIZE } from "@/lib/photo";
 import { MonthRecapCard } from "@/components/diario/month-recap";
 import type { DiaryEntry } from "@/lib/types";
 import { fmtDate, toInputDate } from "@/lib/date";
@@ -172,7 +172,7 @@ function EntryDialog({
   async function addPhoto(file: File | undefined) {
     if (!file) return;
     try {
-      const url = await readImageAsDataUrl(file, 640);
+      const url = await readImageAsDataUrl(file, RECORD_PHOTO_SIZE);
       setPhotos((p) => [...p, url]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não consegui usar essa imagem.");

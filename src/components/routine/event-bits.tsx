@@ -157,6 +157,14 @@ export function EventRow({
           {isFuture ? "agendado" : timeAgo(event.startedAt)}
           {eventSubtitle(event) && <span> · {eventSubtitle(event)}</span>}
         </p>
+        {event.photos.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {event.photos.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt={`Foto ${i + 1} do registro`} className="size-14 rounded-lg object-cover ring-1 ring-line" />
+            ))}
+          </div>
+        )}
       </div>
       {trailing}
       {(onEdit || onDelete) && (

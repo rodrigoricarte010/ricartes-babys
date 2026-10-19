@@ -12,6 +12,7 @@ import type { AppEvent, FeedingMethod, SleepType, DiaperType, FoodReaction } fro
 import { toInputDateTime, durationLabel, addDays } from "@/lib/date";
 import { ALLERGENS, FOOD_GROUPS, REACTION_LABEL } from "@/lib/catalog/foods";
 import { FeverGuidanceCard } from "@/components/routine/fever-card";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import { ageInDays } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
@@ -95,6 +96,7 @@ const METHOD_LABEL: Record<FeedingMethod, string> = {
 export function FeedingForm({ open, onClose, editing, presetMethod, presetDurationMin }: FeedingFormProps) {
   const { activeChild } = useStore();
   const save = useSaveEvent();
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const [method, setMethod] = useState<FeedingMethod>("breast");
   const [side, setSide] = useState<"left" | "right" | "both">("left");
@@ -108,6 +110,7 @@ export function FeedingForm({ open, onClose, editing, presetMethod, presetDurati
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setMethod((editing ? (payload.method as FeedingMethod) : presetMethod) ?? "breast");
     setSide((payload.side as "left" | "right" | "both") ?? "left");
@@ -140,7 +143,7 @@ export function FeedingForm({ open, onClose, editing, presetMethod, presetDurati
               ? { method, food: food.trim() || null, isNewFood, reaction }
               : { method, amountMl: amountNum },
         note: note.trim() || null,
-        photos: editing?.photos ?? [],
+        photos,
       },
       editing,
       "Alimentação registrada.",
@@ -261,7 +264,9 @@ export function FeedingForm({ open, onClose, editing, presetMethod, presetDurati
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Aceitou bem? Regurgitou?" />
         </Field>
-      </div>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+     </div>
     </Dialog>
   );
 }
@@ -278,6 +283,7 @@ export interface SleepFormProps {
 export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps) {
   const { activeChild } = useStore();
   const save = useSaveEvent();
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const [type, setType] = useState<SleepType>("nap");
   const [startedAt, setStartedAt] = useState("");
@@ -287,6 +293,7 @@ export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setType((editing ? (payload.type as SleepType) : presetType) ?? "nap");
     setStartedAt(toInputDateTime(editing ? new Date(editing.startedAt) : new Date()));
@@ -309,7 +316,7 @@ export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps
         durationMin: duration,
         payload: { type, quality },
         note: note.trim() || null,
-        photos: editing?.photos ?? [],
+        photos,
       },
       editing,
       "Sono registrado.",
@@ -405,7 +412,9 @@ export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Acordou quantas vezes? Chorou?" />
         </Field>
-      </div>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+     </div>
     </Dialog>
   );
 }
@@ -424,6 +433,7 @@ export interface DiaperFormProps {
 export function DiaperForm({ open, onClose, editing }: DiaperFormProps) {
   const { activeChild } = useStore();
   const save = useSaveEvent();
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const [type, setType] = useState<DiaperType>("wet");
   const [changedAt, setChangedAt] = useState("");
@@ -434,6 +444,7 @@ export function DiaperForm({ open, onClose, editing }: DiaperFormProps) {
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setType((payload.type as DiaperType) ?? "wet");
     setChangedAt(toInputDateTime(editing ? new Date(editing.startedAt) : new Date()));
@@ -459,7 +470,7 @@ export function DiaperForm({ open, onClose, editing }: DiaperFormProps) {
           rash,
         },
         note: note.trim() || null,
-        photos: editing?.photos ?? [],
+        photos,
       },
       editing,
       "Fralda registrada.",
@@ -537,7 +548,9 @@ export function DiaperForm({ open, onClose, editing }: DiaperFormProps) {
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
-      </div>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+     </div>
     </Dialog>
   );
 }
@@ -555,6 +568,7 @@ const COMMON_MEDICINES = ["Paracetamol", "Dipirona", "Ibuprofeno", "Soro fisiol�
 export function MedicineForm({ open, onClose, editing }: MedicineFormProps) {
   const { activeChild } = useStore();
   const save = useSaveEvent();
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
@@ -564,6 +578,7 @@ export function MedicineForm({ open, onClose, editing }: MedicineFormProps) {
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setName((payload.name as string) ?? "");
     setDose((payload.dose as string) ?? "");
@@ -583,7 +598,7 @@ export function MedicineForm({ open, onClose, editing }: MedicineFormProps) {
         durationMin: null,
         payload: { name: name.trim(), dose: dose.trim() || null, route },
         note: note.trim() || null,
-        photos: editing?.photos ?? [],
+        photos,
       },
       editing,
       "Remédio registrado.",
@@ -639,7 +654,9 @@ export function MedicineForm({ open, onClose, editing }: MedicineFormProps) {
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Prescrito por quem? De quanto em quanto tempo?" />
         </Field>
-      </div>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+     </div>
     </Dialog>
   );
 }
@@ -657,6 +674,7 @@ const COMMON_SYMPTOMS = ["Febre", "Cólica", "Nariz escorrendo", "Tosse", "Vômi
 export function SymptomForm({ open, onClose, editing }: SymptomFormProps) {
   const { activeChild } = useStore();
   const save = useSaveEvent();
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const [symptom, setSymptom] = useState("");
   const [temperature, setTemperature] = useState("");
@@ -666,6 +684,7 @@ export function SymptomForm({ open, onClose, editing }: SymptomFormProps) {
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
     setSymptom((payload.symptom as string) ?? "");
     setTemperature(payload.temperatureC != null ? String(payload.temperatureC).replace(".", ",") : "");
@@ -687,7 +706,7 @@ export function SymptomForm({ open, onClose, editing }: SymptomFormProps) {
         durationMin: null,
         payload: { symptom: symptom.trim(), temperatureC: temp, severity },
         note: note.trim() || null,
-        photos: editing?.photos ?? [],
+        photos,
       },
       editing,
       "Sintoma registrado.",
@@ -760,7 +779,9 @@ export function SymptomForm({ open, onClose, editing }: SymptomFormProps) {
         <Field label="Observação">
           <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
-      </div>
+
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+     </div>
     </Dialog>
   );
 }

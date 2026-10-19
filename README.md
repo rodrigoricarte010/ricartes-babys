@@ -49,8 +49,13 @@ para o pediatra.
 - Registro de data, local e lote; toggle para incluir recomendações da rede privada.
 - Deixa claro que a fonte oficial é a caderneta e a equipe de saúde.
 
-### 📔 Diário de memórias
+### 📔 Diário de memórias e fotos em tudo
 - Textos datados com humor do dia e fotos — porque os dias passam rápido demais.
+- **Fotos em qualquer registro**: sintoma (a erupção na pele vale mais que mil
+  descrições), medicamento (a receita), consulta, nota, marco conquistado —
+  tudo aparece como miniatura na linha do tempo. As imagens são comprimidas no
+  aparelho antes de salvar (640 px, JPEG), então funcionam offline e não
+  estouram o banco.
 
 ### 🩺 Relatório para consulta
 - Uma página imprimível/PDF com antropometria completa (z e percentil), vacinação,

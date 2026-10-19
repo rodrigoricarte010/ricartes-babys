@@ -11,34 +11,7 @@ import { BLOOD_TYPES, type Child, type Sex } from "@/lib/types";
 import { KID_COLOR_HEX, type KidColor, cn } from "@/lib/utils";
 import { ChildAvatar } from "@/components/ui/avatar";
 import { toInputDate } from "@/lib/date";
-
-/** Reduz a foto antes de guardar: 320 px é o bastante para avatar e cabe no IndexedDB. */
-export async function readImageAsDataUrl(file: File, maxSize = 320): Promise<string> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Não consegui ler o arquivo."));
-    reader.readAsDataURL(file);
-  });
-
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Este arquivo não parece uma imagem."));
-    img.src = dataUrl;
-  });
-
-  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return dataUrl;
-  ctx.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", 0.82);
-}
+import { readImageAsDataUrl } from "@/lib/photo";
 
 export interface ChildFormValues {
   firstName: string;

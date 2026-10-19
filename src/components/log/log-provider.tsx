@@ -28,6 +28,7 @@ import {
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import type { AppEvent, FeedingMethod, Measurement } from "@/lib/types";
 import { stopwatchLabel } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -265,9 +266,11 @@ function NoteForm({ open, onClose, editing }: { open: boolean; onClose: () => vo
   const toast = useToast();
   const [text, setText] = useState("");
   const [when, setWhen] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
+    setPhotos(editing?.photos ?? []);
     setText(editing?.note ?? "");
     setWhen(editing ? toLocalInput(new Date(editing.startedAt)) : toLocalInput(new Date()));
   }, [open, editing]);
@@ -283,7 +286,7 @@ function NoteForm({ open, onClose, editing }: { open: boolean; onClose: () => vo
         durationMin: null,
         payload: {},
         note: text.trim(),
-        photos: editing?.photos ?? [],
+        photos,
       };
       if (editing) await upsertEvent({ ...editing, ...draft });
       else await createEvent(draft);
@@ -324,6 +327,7 @@ function NoteForm({ open, onClose, editing }: { open: boolean; onClose: () => vo
           onChange={(e) => setWhen(e.target.value)}
           className="h-11 w-full rounded-xl border border-line-strong bg-bg-elevated px-3.5 text-sm text-fg focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/12"
         />
+        <PhotoPicker photos={photos} onChange={setPhotos} />
       </div>
     </Dialog>
   );

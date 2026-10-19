@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, PartyPopper, Sparkles } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Camera, Check, ChevronDown, Loader2, PartyPopper, Sparkles } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/app-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
   type Milestone,
 } from "@/lib/catalog/milestones";
 import { ageInDays, fmtDateMedium } from "@/lib/date";
+import { readImageAsDataUrl, RECORD_PHOTO_SIZE } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,11 +45,11 @@ export function MarcosPage() {
   const [showFlags, setShowFlags] = useState(false);
 
   const achieved = useMemo(() => {
-    const map = new Map<string, { id: string; at: string }>();
+    const map = new Map<string, { id: string; at: string; photos: string[] }>();
     for (const e of events) {
       if (e.kind !== "milestone") continue;
       const key = (e.payload as { key?: string }).key;
-      if (key) map.set(key, { id: e.id, at: e.startedAt });
+      if (key) map.set(key, { id: e.id, at: e.startedAt, photos: e.photos ?? [] });
     }
     return map;
   }, [events]);
@@ -186,7 +187,7 @@ function CheckpointCard({
   onToggleFlags,
 }: {
   checkpoint: AgeCheckpoint;
-  achieved: Map<string, { id: string; at: string }>;
+  achieved: Map<string, { id: string; at: string; photos: string[] }>;
   open: boolean;
   isCurrent: boolean;
   expected: boolean;
@@ -267,6 +268,15 @@ function CheckpointCard({
                       )}
                     </span>
                   </button>
+                  {hit && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-9">
+                      {hit.photos.map((src, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={i} src={src} alt={`Foto do marco: ${m.text}`} className="size-12 rounded-lg object-cover ring-1 ring-line" />
+                      ))}
+                      <MilestonePhotoButton eventId={hit.id} />
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -300,5 +310,53 @@ function CheckpointCard({
         </CardBody>
       )}
     </Card>
+  );
+}
+
+/** Botão que anexa uma foto a um marco já conquistado. */
+function MilestonePhotoButton({ eventId }: { eventId: string }) {
+  const { events, upsertEvent } = useStore();
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handle(file: File | undefined) {
+    const ev = events.find((e) => e.id === eventId);
+    if (!file || !ev) return;
+    setBusy(true);
+    try {
+      const url = await readImageAsDataUrl(file, RECORD_PHOTO_SIZE);
+      await upsertEvent({ ...ev, photos: [...(ev.photos ?? []), url] });
+      toast.success("Foto guardada com o marco. 📸");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não consegui usar essa imagem.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+        aria-label="Adicionar foto a este marco"
+        title="Adicionar foto"
+        className="grid size-12 place-items-center rounded-lg border border-dashed border-line-strong text-fg-subtle transition-colors hover:border-brand-400 hover:text-brand-500"
+      >
+        {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Camera className="size-4" aria-hidden />}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          void handle(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+    </>
   );
 }
