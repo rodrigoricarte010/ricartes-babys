@@ -56,7 +56,27 @@ para o pediatra.
 - Uma página imprimível/PDF com antropometria completa (z e percentil), vacinação,
   rotina e marcos. Feita para mostrar no celular ou entregar impressa no consultório.
 
-### 👨‍👩‍👧 Várias crianças
+### 🧭 Insights acionáveis (o diário que pensa junto)
+- **Ritmo de sono**: janelas acordadas por idade (referências Cleveland Clinic /
+  Sleep Foundation), barra de progresso da janela, **sugestão da próxima soneca
+  e do horário de dormir** a partir da hora em que ela acordou — o mesmo princípio
+  que tornou o Huckleberry famoso, aqui sem assinatura.
+- **Saltos mentais** (The Wonder Weeks): calcula a semana de vida (corrigida pela
+  data prevista quando se sabe a gestação) e avisa se ela está em fase
+  “tempestuosa” (os 3 Cs), “ensolarada” ou em calmaria — com a linha do tempo dos
+  10 saltos e o que cada um traz.
+- **Guia de febre por idade**: ao registrar temperatura, interpreta na hora
+  (não-febre / estado febril / febre) e aplica a regra certa para a idade —
+  incluindo “< 3 meses com febre = atendimento no mesmo dia” — com a lista de
+  sinais de alerta para correr.
+- **Estimule hoje**: 3 brincadeiras curadas para a fase exata, rotacionáveis,
+  ligadas às categorias de desenvolvimento.
+- **Comparar irmãos**: sobrepõe a trajetória de outro filho na mesma curva
+  (cada um com sua referência de sexo/idade; a sobreposição é visual).
+- **Mesversários**: recap automático de cada mês completo — ganho de peso e
+  estatura, marcos conquistados e ritmo médio de mamadas/sono.
+
+### 👨‍‍👧 Várias crianças
 - Cada criança tem suas próprias curvas, marcos e carteira; trocar entre elas é um toque.
 
 ---
@@ -118,7 +138,8 @@ src/
     ├── growth-engine.ts  # carrega as tabelas LMS em chunk separado (lazy)
     ├── analytics.ts      # leituras de rotina (médias, intervalos, ganho de peso)
     ├── vaccine-progress.ts
-    ├── catalog/          # marcos, vacinas PNI/SBIm, alimentos e alergênicos
+    ├── catalog/          # marcos, vacinas PNI/SBIm, alimentos, sono, saltos, atividades
+    ├── health.ts         # guia de febre e sinais de alerta por idade
     ├── db/               # adaptadores de persistência (local / supabase) + seed
     └── store.tsx         # estado global otimista da família
 supabase/schema.sql       # tabelas + Row Level Security

@@ -11,6 +11,8 @@ import { useStore } from "@/lib/store";
 import type { AppEvent, FeedingMethod, SleepType, DiaperType, FoodReaction } from "@/lib/types";
 import { toInputDateTime, durationLabel, addDays } from "@/lib/date";
 import { ALLERGENS, FOOD_GROUPS, REACTION_LABEL } from "@/lib/catalog/foods";
+import { FeverGuidanceCard } from "@/components/routine/fever-card";
+import { ageInDays } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 /** Base comum dos diálogos de rotina: monta e salva o evento. */
@@ -746,6 +748,10 @@ export function SymptomForm({ open, onClose, editing }: SymptomFormProps) {
             />
           </Field>
         </div>
+
+        {temp != null && activeChild && (
+          <FeverGuidanceCard tempC={temp} ageMonths={ageInDays(activeChild.birthDate, new Date()) / 30.4375} />
+        )}
 
         <Field label="Horário">
           <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />

@@ -6,6 +6,7 @@ import { AppShell, PageHeader } from "@/components/layout/app-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ActivitiesCard } from "@/components/marcos/activities-card";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -134,6 +135,8 @@ export function MarcosPage() {
             </div>
           </CardBody>
         </Card>
+
+        <ActivitiesCard />
 
         {/* Acordeão por idade */}
         <div className="space-y-3">

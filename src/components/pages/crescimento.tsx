@@ -1,30 +1,55 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Info, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/app-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, Stat } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
+import { Field, Select } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
-import { GrowthChart, type MeasuredPoint } from "@/components/growth/growth-chart";
+import { GrowthChart, type MeasuredPoint, type OverlaySeries } from "@/components/growth/growth-chart";
 import { useGrowthEngine } from "@/lib/growth-engine";
 import { useStore } from "@/lib/store";
 import { useLog } from "@/components/log/log-provider";
 import { useToast } from "@/components/ui/toast";
 import { METRICS, METRIC_ORDER, formatPercentile, formatZScore, type MetricKey } from "@/lib/growth";
 import { ageInDays, fmtDateMedium } from "@/lib/date";
-import { downloadCsv, measurementsToCsv } from "@/lib/db";
+import { downloadCsv, measurementsToCsv, getDataSource } from "@/lib/db";
 import { weightGainPerDay, expectedWeightGainPerDay, expectedWeightGainPerDayLabel } from "@/lib/analytics";
-import { num as fmtNum } from "@/lib/utils";
+import { num as fmtNum, kidColorHex } from "@/lib/utils";
+import type { Measurement } from "@/lib/types";
 
 export function CrescimentoPage() {
-  const { activeChild: child, measurements, removeMeasurement } = useStore();
+  const { activeChild: child, measurements, removeMeasurement, children } = useStore();
   const log = useLog();
   const { engine } = useGrowthEngine();
   const toast = useToast();
   const [metric, setMetric] = useState<MetricKey>("weight");
+  const [compareId, setCompareId] = useState("");
+  const [compareMeasurements, setCompareMeasurements] = useState<Measurement[]>([]);
+
+  const otherKids = children.filter((c) => c.id !== child?.id);
+
+  useEffect(() => {
+    let alive = true;
+    if (!compareId) {
+      setCompareMeasurements([]);
+      return;
+    }
+    getDataSource()
+      .listMeasurements(compareId)
+      .then((list) => {
+        if (alive) setCompareMeasurements(list);
+      })
+      .catch(() => {
+        if (alive) setCompareMeasurements([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [compareId]);
 
   const points = useMemo<MeasuredPoint[]>(() => {
     if (!child || !engine) return [];
@@ -55,6 +80,24 @@ export function CrescimentoPage() {
     }
     return out;
   }, [child, engine, measurements, metric]);
+
+  const overlay = useMemo<OverlaySeries[]>(() => {
+    if (!compareId || !engine || !child) return [];
+    const other = children.find((c) => c.id === compareId);
+    if (!other) return [];
+    const pts: MeasuredPoint[] = [];
+    for (const m of compareMeasurements) {
+      let value: number | null = null;
+      if (metric === "weight") value = m.weightKg;
+      else if (metric === "length") value = m.lengthCm;
+      else if (metric === "head") value = m.headCm;
+      else if (m.weightKg != null && m.lengthCm != null) value = engine.computeBmi(m.weightKg, m.lengthCm);
+      if (value == null) continue;
+      pts.push({ ageDays: ageInDays(other.birthDate, new Date(m.takenAt)), value, takenAt: m.takenAt });
+    }
+    if (pts.length === 0) return [];
+    return [{ label: other.nickname || other.firstName, color: kidColorHex(other.color, other.id), points: pts }];
+  }, [compareId, engine, child, children, compareMeasurements, metric]);
 
   const gain = useMemo(() => {
     const withAge = measurements
@@ -118,6 +161,19 @@ export function CrescimentoPage() {
           options={METRIC_ORDER.map((k) => ({ value: k, label: METRICS[k].label }))}
         />
 
+        {otherKids.length > 0 && (
+          <Field label="Comparar trajetória com" hint="Cada criança mantém sua própria curva de referência (sexo e idade); a sobreposição é só visual.">
+            <Select value={compareId} onChange={(e) => setCompareId(e.target.value)}>
+              <option value="">Ninguém — só {child?.nickname || child?.firstName}</option>
+              {otherKids.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nickname || k.firstName}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+
         <Card>
           <CardHeader
             title={`${meta.label} para idade`}
@@ -144,6 +200,7 @@ export function CrescimentoPage() {
                 birthDate={child.birthDate}
                 gestationalWeeks={child.gestationalWeeks}
                 points={points}
+                overlay={overlay}
               />
             )}
           </CardBody>

@@ -13,6 +13,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { MOOD_EMOJI, MOOD_LABEL } from "@/lib/analytics";
 import { readImageAsDataUrl } from "@/components/child-form";
+import { MonthRecapCard } from "@/components/diario/month-recap";
 import type { DiaryEntry } from "@/lib/types";
 import { fmtDate, toInputDate } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,8 @@ export function DiarioPage() {
           </Button>
         }
       />
+
+      <MonthRecapCard />
 
       {diary.length === 0 ? (
         <Card>

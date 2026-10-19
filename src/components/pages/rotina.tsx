@@ -8,6 +8,8 @@ import { Stat, Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EventRow } from "@/components/routine/event-bits";
+import { SleepPredictorCard } from "@/components/routine/insights";
+import { TodayFeverCard } from "@/components/routine/fever-card";
 import { useStore } from "@/lib/store";
 import { useLog } from "@/components/log/log-provider";
 import { isLogKind } from "@/components/log/types";
@@ -104,6 +106,11 @@ export function RotinaPage() {
           </Button>
         }
       />
+
+      <div className="mb-4 space-y-4">
+        <TodayFeverCard />
+        <SleepPredictorCard />
+      </div>
 
       {/* Navegação de dia */}
       <div className="mb-4 flex items-center justify-between gap-2">

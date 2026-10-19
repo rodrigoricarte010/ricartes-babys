@@ -27,6 +27,13 @@ export interface MeasuredPoint {
   source?: string | null;
 }
 
+/** Série extra desenhada por cima (ex.: um irmão, para comparar trajetórias). */
+export interface OverlaySeries {
+  label: string;
+  color: string;
+  points: MeasuredPoint[];
+}
+
 const VB_W = 760;
 const VB_H = 420;
 const PAD = { top: 18, right: 18, bottom: 40, left: 46 };
@@ -60,6 +67,7 @@ export function GrowthChart({
   points,
   color,
   maxMonths,
+  overlay = [],
   heightClass = "h-[300px] sm:h-[360px]",
 }: {
   metric: MetricKey;
@@ -69,6 +77,8 @@ export function GrowthChart({
   points: MeasuredPoint[];
   color?: string;
   maxMonths?: number;
+  /** Trajetórias extras (ex.: irmãos) desenhadas em traço fino. */
+  overlay?: OverlaySeries[];
   heightClass?: string;
 }) {
   const { engine } = useGrowthEngine();
@@ -111,10 +121,17 @@ export function GrowthChart({
       if (p.value < min) min = p.value;
       if (p.value > max) max = p.value;
     }
+    for (const series of overlay) {
+      for (const p of series.points) {
+        if (p.ageDays / 30.4375 > range.maxMonths + 0.5) continue;
+        if (p.value < min) min = p.value;
+        if (p.value > max) max = p.value;
+      }
+    }
     if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1];
     const span = Math.max(max - min, meta.step * 4);
     return [Math.max(0, min - span * 0.08), max + span * 0.1];
-  }, [curves, visiblePoints, meta.step]);
+  }, [curves, visiblePoints, overlay, range.maxMonths, meta.step]);
 
   const xOf = (months: number) =>
     PAD.left + (months / range.maxMonths) * (VB_W - PAD.left - PAD.right);
@@ -259,6 +276,25 @@ export function GrowthChart({
               </g>
             ))}
 
+            {/* Trajetórias sobrepostas (irmãos) */}
+            {overlay.map((series) => {
+              const pts = series.points.filter((p) => p.ageDays / 30.4375 <= range.maxMonths + 0.5);
+              if (pts.length === 0) return null;
+              const d = pts
+                .map((p, i) => `${i === 0 ? "M" : "L"}${xOf(p.ageDays / 30.4375).toFixed(2)},${yOf(p.value).toFixed(2)}`)
+                .join(" ");
+              return (
+                <g key={series.label} opacity="0.75">
+                  {pts.length > 1 && (
+                    <path d={d} fill="none" stroke={series.color} strokeWidth="1.8" strokeDasharray="6 4" strokeLinecap="round" />
+                  )}
+                  {pts.map((p, i) => (
+                    <circle key={i} cx={xOf(p.ageDays / 30.4375)} cy={yOf(p.value)} r="3" fill={series.color} opacity="0.8" />
+                  ))}
+                </g>
+              );
+            })}
+
             {/* Linha vertical do ponto em foco */}
             {hovered && (
               <line
@@ -316,6 +352,12 @@ export function GrowthChart({
           <span className="inline-block h-2.5 w-5 rounded bg-brand-400/20" />
           Faixa p3–p97 (OMS)
         </span>
+        {overlay.map((series) => (
+          <span key={series.label} className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-5 rounded" style={{ backgroundColor: series.color, opacity: 0.8 }} />
+            {series.label}
+          </span>
+        ))}
       </div>
 
       {!engine && (
