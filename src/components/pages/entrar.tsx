@@ -44,7 +44,10 @@ export function EntrarPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/entrar` },
+      // O link volta com um `?code=` que só a rota /auth/callback sabe trocar
+      // por uma sessão. Apontar para /entrar fazia o código ser ignorado e o
+      // usuário voltava ao formulário sem estar logado.
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setBusy(false);
     if (error) {
