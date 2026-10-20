@@ -190,39 +190,30 @@ function fail(op: string, err: { message?: string } | null): never {
 export function createSupabaseDataSource(supabase: SupabaseClient): DataSource {
   let householdPromise: Promise<string> | null = null;
 
-  /** Descobre a família do usuário, criando-a no primeiro acesso. */
+  /**
+   * Descobre a família do usuário, criando-a no primeiro acesso.
+   *
+   * A criação fica na função `ensure_household` (security definer), e não em
+   * dois inserts do cliente: assim família e vínculo nascem juntos, sem risco
+   * de sobrar uma família órfã se o segundo insert falhar, e sem depender de
+   * `RETURNING` passar por uma policy de SELECT da qual ainda não se é membro.
+   */
   async function resolveHousehold(): Promise<string> {
     if (!householdPromise) {
       householdPromise = (async () => {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-        if (userError || !user) fail("identificar o usuário", userError);
+        const { data, error } = await supabase.rpc("ensure_household", {
+          p_name: "Família Ricartes",
+        });
+        if (error) fail("identificar a família", error);
+        if (!data) fail("identificar a família", { message: "a função ensure_household não retornou nenhuma família" });
 
-        const { data: existing } = await supabase
-          .from("household_members")
-          .select("household_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (existing?.household_id) return existing.household_id as string;
-
-        const { data: created, error } = await supabase
-          .from("households")
-          .insert({ name: "Família Ricartes" })
-          .select("id")
-          .single();
-        if (error) fail("criar a família", error);
-
-        const { error: memberError } = await supabase
-          .from("household_members")
-          .insert({ household_id: created.id, user_id: user.id, role: "admin" });
-        if (memberError) fail("registrar você na família", memberError);
-
-        return created.id as string;
+        return data as string;
       })();
+      // Uma falha não deve envenenar a sessão inteira: descarta a promise para
+      // que a próxima tentativa (ex.: reenviar o formulário) comece do zero.
+      householdPromise.catch(() => {
+        householdPromise = null;
+      });
     }
     return householdPromise;
   }

@@ -180,8 +180,12 @@ export function ChildForm({
         toast.success(`${created.firstName} agora faz parte do acompanhamento. 💛`);
         onSaved?.(created);
       }
-    } catch {
-      toast.error("Não consegui salvar. Verifique os campos e tente de novo.");
+    } catch (err) {
+      // Mostrar a causa real: o toast genérico escondia justamente a
+      // informação necessária para diagnosticar (RLS, sessão, constraint).
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error("Falha ao salvar criança:", err);
+      toast.error(`Não consegui salvar: ${detail}`);
     }
   }
 
