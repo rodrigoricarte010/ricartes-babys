@@ -226,6 +226,21 @@
   }
 }
 
+/*
+ * Rede de segurança: a página nunca deve rolar na horizontal.
+ *
+ * Um único elemento com largura mínima grande (título com `truncate`, badge
+ * com `nowrap`) alargava uma coluna de grid e empurrava o layout inteiro para
+ * fora da tela no celular. `clip` corta o transbordo sem criar um contêiner de
+ * rolagem — diferente de `hidden`, não abre rolagem por teclado nem por
+ * programa.
+ */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 /* Gráficos de crescimento: linhas finas e legíveis em qualquer tema */
 .who-grid line {
   stroke: var(--border);

@@ -4,8 +4,13 @@ import { cn } from "@/lib/utils";
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      // `min-w-0` é essencial: como item de grid/flex, o Card herdaria
+      // `min-width: auto` e passaria a exigir a largura mínima do seu conteúdo.
+      // O título do CardHeader usa `truncate` (white-space: nowrap), cuja
+      // largura mínima é o texto inteiro — isso inflava a coluna do grid e
+      // fazia todos os cards ficarem mais largos que a tela.
       className={cn(
-        "rounded-2xl border border-line bg-bg-elevated shadow-soft",
+        "min-w-0 rounded-2xl border border-line bg-bg-elevated shadow-soft",
         className,
       )}
       {...props}
