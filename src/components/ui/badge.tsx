@@ -78,13 +78,15 @@ export function Stat({
   };
   return (
     <div
+      // Mesmo motivo do Card: como item de grid, `min-width: auto` faria a
+      // coluna crescer até o rótulo mais longo em vez de deixá-lo truncar.
       className={cn(
-        "rounded-2xl border border-line bg-bg-elevated p-3.5 shadow-soft sm:p-4",
+        "min-w-0 rounded-2xl border border-line bg-bg-elevated p-3.5 shadow-soft sm:p-4",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-fg-subtle">{label}</span>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-fg-subtle">{label}</span>
         {icon && <span className={cn("shrink-0", accent[tone])}>{icon}</span>}
       </div>
       <div className="mt-1.5 flex items-baseline gap-1">
