@@ -146,9 +146,9 @@ export function EntrarPage() {
             )}
           </div>
 
-          <Link href="/painel" className="block text-center text-xs font-semibold text-fg-subtle underline underline-offset-2 hover:text-fg">
-            Continuar sem entrar (modo local)
-          </Link>
+          {/* O acesso agora é estrito: sem sessão, o middleware manda de volta
+              para cá. O modo local segue existindo só quando o app roda sem
+              as variáveis do Supabase (desenvolvimento/offline). */}
         </CardBody>
       </Card>
     </div>
