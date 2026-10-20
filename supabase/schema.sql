@@ -182,6 +182,57 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Cria a família do usuário e o vínculo de admin numa única transação.
+--
+-- Por que uma função: o cliente fazia dois inserts separados e lia de volta a
+-- família recém-criada. Como o `RETURNING` passa pela policy de SELECT, e o
+-- usuário ainda não era membro naquele instante, o insert "funcionava" mas a
+-- linha não voltava — deixando famílias órfãs a cada tentativa. Aqui o corpo
+-- roda como um único statement: ou os dois inserts acontecem, ou nenhum.
+--
+-- `security definer` é necessário para o SELECT em household_members não ser
+-- filtrado pela RLS antes de existir o vínculo. A função não recebe id de
+-- usuário como parâmetro: ela sempre usa auth.uid(), então não há como um
+-- usuário agir em nome de outro.
+create or replace function public.ensure_household(p_name text default 'Família Ricartes')
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  h_id uuid;
+begin
+  if uid is null then
+    raise exception 'ensure_household: usuario nao autenticado';
+  end if;
+
+  select m.household_id into h_id
+  from public.household_members m
+  where m.user_id = uid
+  order by m.created_at
+  limit 1;
+
+  if h_id is not null then
+    return h_id;
+  end if;
+
+  insert into public.households (name, created_by)
+  values (coalesce(nullif(btrim(p_name), ''), 'Família Ricartes'), uid)
+  returning id into h_id;
+
+  insert into public.household_members (household_id, user_id, role)
+  values (h_id, uid, 'admin');
+
+  return h_id;
+end;
+$$;
+
+revoke all on function public.ensure_household(text) from public;
+revoke all on function public.ensure_household(text) from anon;
+grant execute on function public.ensure_household(text) to authenticated;
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- ─────────────────────────────────────────────────────────────────────────
@@ -206,9 +257,13 @@ create policy profiles_update_self on public.profiles
   for update using (id = auth.uid());
 
 -- households: membros leem; qualquer autenticado cria; admin edita.
+-- `created_by = auth.uid()` cobre a janela entre criar a família e virar
+-- membro dela: sem isso o INSERT funciona mas o RETURNING volta vazio.
 drop policy if exists households_select on public.households;
 create policy households_select on public.households
-  for select using (public.is_household_member(id));
+  for select using (
+    public.is_household_member(id) or created_by = auth.uid()
+  );
 drop policy if exists households_insert on public.households;
 create policy households_insert on public.households
   for insert with check (auth.uid() is not null);
