@@ -58,7 +58,9 @@ export function PhotoPicker({ photos, onChange, max = 6, label = "Fotos", classN
               type="button"
               aria-label={`Remover foto ${i + 1}`}
               onClick={() => onChange(photos.filter((_, idx) => idx !== i))}
-              className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-fg text-bg shadow-soft"
+              // O `after` expande a área de toque para ~40px sem aumentar o
+              // círculo visível — 24px é pequeno demais para o dedo.
+              className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-fg text-bg shadow-soft after:absolute after:-inset-2 after:content-['']"
             >
               <X className="size-3.5" aria-hidden />
             </button>

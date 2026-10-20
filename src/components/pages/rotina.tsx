@@ -43,12 +43,16 @@ function MiniBars({
   return (
     <div>
       <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">{label}</p>
-      <div className="flex items-end gap-1.5">
+      {/* pt-5 reserva a altura do valor, que agora aparece fixo no celular
+          (não existe hover em tela de toque). */}
+      <div className="flex items-end gap-1.5 pt-5">
         {data.map((d) => (
           <div key={d.key} className="group relative flex flex-1 flex-col items-center gap-1">
-            <span className="pointer-events-none absolute -top-7 whitespace-nowrap rounded-lg bg-fg px-2 py-0.5 text-[10px] font-bold text-bg opacity-0 transition-opacity group-hover:opacity-100">
-              {format(d.value)}
-            </span>
+            {d.value > 0 && (
+              <span className="pointer-events-none absolute -top-5 whitespace-nowrap rounded-md bg-fg px-1.5 py-0.5 text-[10px] font-bold text-bg transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                {format(d.value)}
+              </span>
+            )}
             <div
               className={cn("w-full rounded-md transition-all", d.active ? "ring-2 ring-brand-400/60" : "")}
               style={{

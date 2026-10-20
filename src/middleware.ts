@@ -3,16 +3,42 @@ import { createServerClient } from "@supabase/ssr";
 import { isCloudConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 /**
- * Renovação de sessão do Supabase.
+ * Sessão do Supabase + porta de entrada do app.
  *
- * O token de acesso expira em cerca de uma hora. Sem este middleware o cookie
- * não é renovado, e a sessão morre silenciosamente no meio do uso — o usuário
- * parece "deslogado" sem ter saído. Aqui cada request passa pelo
- * `getUser()`, que renova o cookie quando necessário.
+ * Faz duas coisas, nesta ordem:
  *
- * Em modo local (sem as variáveis do Supabase) nada acontece: o app continua
- * funcionando só com IndexedDB.
+ *   1. Renova o token de acesso. Ele expira em cerca de uma hora; sem isso o
+ *      cookie não é atualizado e a sessão morre silenciosamente no meio do uso.
+ *   2. Exige autenticação. Sem sessão, qualquer rota privada cai em /entrar;
+ *      com sessão, /entrar manda direto para o painel.
+ *
+ * Em modo local (sem as variáveis do Supabase configuradas) o middleware não
+ * exige nada: o app continua funcionando só com IndexedDB. Isso também evita
+ * um loop de redirecionamento num deploy de desenvolvimento sem as chaves.
  */
+
+/** Rotas que não exigem sessão. */
+const PUBLIC_PATHS = ["/entrar", "/auth/callback"];
+
+function isPublic(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * Leva os cookies renovados para dentro do redirect.
+ *
+ * Sem isso o `getUser()` grava o token novo numa resposta que é descartada, e
+ * o navegador segue com o cookie antigo — o que produz o clássico vaivém de
+ * login: entra em /painel, é mandado de volta para /entrar, e assim por diante.
+ */
+function redirectWithCookies(url: URL, from: NextResponse): NextResponse {
+  const target = NextResponse.redirect(url);
+  for (const cookie of from.cookies.getAll()) {
+    target.cookies.set(cookie);
+  }
+  return target;
+}
+
 export async function middleware(request: NextRequest) {
   if (!isCloudConfigured) return NextResponse.next({ request });
 
@@ -38,7 +64,25 @@ export async function middleware(request: NextRequest) {
   });
 
   // Não remova: é esta chamada que renova o token e grava o cookie atualizado.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  if (!user && !isPublic(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/entrar";
+    url.search = "";
+    return redirectWithCookies(url, response);
+  }
+
+  if (user && pathname === "/entrar") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/painel";
+    url.search = "";
+    return redirectWithCookies(url, response);
+  }
 
   return response;
 }

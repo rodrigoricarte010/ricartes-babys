@@ -320,9 +320,12 @@ export function GrowthChart({
       {/* Tooltip */}
       {hovered && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-xl border border-line bg-bg-elevated px-3 py-2 shadow-lift"
+          // `clamp` mantém o balão dentro do gráfico: com translate de -50%,
+          // um ponto perto da borda jogaria metade dele para fora da tela em
+          // telas estreitas. O --tip-half acompanha a largura máxima abaixo.
+          className="pointer-events-none absolute z-10 max-w-[11.5rem] -translate-x-1/2 -translate-y-full rounded-xl border border-line bg-bg-elevated px-3 py-2 shadow-lift [--tip-half:5.75rem]"
           style={{
-            left: `${(xOf(hovered.ageDays / 30.4375) / VB_W) * 100}%`,
+            left: `clamp(var(--tip-half), ${(xOf(hovered.ageDays / 30.4375) / VB_W) * 100}%, calc(100% - var(--tip-half)))`,
             top: `${(yOf(hovered.value) / VB_H) * 100}%`,
           }}
         >
