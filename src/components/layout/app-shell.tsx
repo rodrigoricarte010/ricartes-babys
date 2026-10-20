@@ -192,12 +192,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={href}
                 href={childId ? href : "/filhos/nova"}
                 onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-3 rounded-2xl border border-line bg-bg-elevated p-3.5 shadow-soft transition-colors hover:border-brand-300"
+                // `min-w-0` porque o Link é item de grid: sem isso ele não
+                // encolhe abaixo do rótulo e "Configurações" transborda o
+                // cartão, deixando o ícone menor que a palavra.
+                className="flex min-w-0 items-center gap-3 rounded-2xl border border-line bg-bg-elevated p-3.5 shadow-soft transition-colors hover:border-brand-300"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-bg-muted text-fg-muted">
                   <Icon className="size-4.5" aria-hidden />
                 </span>
-                <span className="text-sm font-bold text-fg">{item.label}</span>
+                <span className="min-w-0 truncate text-sm font-bold text-fg">{item.label}</span>
               </Link>
             );
           })}
