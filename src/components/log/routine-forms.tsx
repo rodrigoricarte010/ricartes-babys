@@ -113,16 +113,20 @@ export function FeedingForm({ open, onClose, editing, presetMethod, presetDurati
     if (!open) return;
     setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
-    setMethod((editing ? (payload.method as FeedingMethod) : presetMethod) ?? "breast");
+    // O método inicial precisa ser calculado aqui, e não lido de `method`:
+    // com `method` nas dependências, tocar em "Mamadeira" fazia o efeito rodar
+    // de novo e devolver o formulário para "Peito" — era impossível trocar.
+    const initialMethod = (editing ? (payload.method as FeedingMethod) : presetMethod) ?? "breast";
+    setMethod(initialMethod);
     setSide((payload.side as "left" | "right" | "both") ?? "left");
     setAmount(payload.amountMl != null ? String(payload.amountMl) : "");
     setFood((payload.food as string) ?? "");
     setIsNewFood(Boolean(payload.isNewFood));
     setReaction((payload.reaction as FoodReaction) ?? "none");
     setStartedAt(toInputDateTime(editing ? new Date(editing.startedAt) : new Date()));
-    setDuration(editing?.durationMin ?? presetDurationMin ?? (method === "breast" ? 15 : null));
+    setDuration(editing?.durationMin ?? presetDurationMin ?? (initialMethod === "breast" ? 15 : null));
     setNote(editing?.note ?? "");
-  }, [open, editing, presetMethod, presetDurationMin, method]);
+  }, [open, editing, presetMethod, presetDurationMin]);
 
   const amountNum = amount === "" ? null : Number(amount.replace(",", "."));
 
@@ -296,12 +300,15 @@ export function SleepForm({ open, onClose, editing, presetType }: SleepFormProps
     if (!open) return;
     setPhotos(editing?.photos ?? []);
     const payload = (editing?.payload ?? {}) as Record<string, unknown>;
-    setType((editing ? (payload.type as SleepType) : presetType) ?? "nap");
+    // Mesmo motivo da alimentação: `type` não pode estar nas dependências,
+    // senão "Noite" voltava para "Soneca" a cada toque.
+    const initialType = (editing ? (payload.type as SleepType) : presetType) ?? "nap";
+    setType(initialType);
     setStartedAt(toInputDateTime(editing ? new Date(editing.startedAt) : new Date()));
-    setDuration(editing?.durationMin ?? (type === "night" ? 600 : 60));
+    setDuration(editing?.durationMin ?? (initialType === "night" ? 600 : 60));
     setQuality((payload.quality as number) ?? null);
     setNote(editing?.note ?? "");
-  }, [open, editing, presetType, type]);
+  }, [open, editing, presetType]);
 
   const ended = duration != null ? new Date(startedFrom(startedAt).getTime() + duration * 60_000) : null;
 
