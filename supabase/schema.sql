@@ -6,6 +6,10 @@
 --   2. SQL Editor → cole este arquivo → Run
 --   3. Copie URL + anon key para .env.local
 --
+-- Atualizando um banco criado com versão anterior: rode
+-- `supabase/security-hardening.sql` antes deste arquivo (ou rode este
+-- inteiro — ele também corrige as policies, é idempotente).
+--
 -- Segurança: toda a autorização fica AQUI, via Row Level Security. O código
 -- do navegador nunca decide quem pode ler o quê — o Postgres decide. Uma
 -- pessoa só enxerga dados de crianças das famílias (households) às quais
@@ -162,6 +166,65 @@ as $$
   );
 $$;
 
+-- ── Funções de papel ─────────────────────────────────────────────────────
+--
+-- IMPORTANTE: nunca cheque vínculo inline dentro de uma policy. Em
+--
+--   exists (select 1 from household_members m
+--           where m.household_id = household_id and ...)
+--
+-- o `household_id` da direita NÃO é a linha alvo: o Postgres resolve para a
+-- própria tabela interna e registra `m.household_id = m.household_id`, que é
+-- sempre verdadeiro. Foi assim que "admin de alguma família" virou "admin
+-- desta família". Passar o id como parâmetro elimina a ambiguidade.
+
+create or replace function public.has_household_role(h_id uuid, roles text[])
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.household_members m
+    where m.household_id = h_id
+      and m.user_id = auth.uid()
+      and m.role = any (roles)
+  );
+$$;
+
+-- Escrever registros: admin, responsável e cuidador.
+create or replace function public.can_write_child(c_id text)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.children c
+    join public.household_members m on m.household_id = c.household_id
+    where c.id = c_id
+      and m.user_id = auth.uid()
+      and m.role in ('admin','responsavel','cuidador')
+  );
+$$;
+
+-- Apagar registros: só admin e responsável.
+create or replace function public.can_manage_child(c_id text)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.children c
+    join public.household_members m on m.household_id = c.household_id
+    where c.id = c_id
+      and m.user_id = auth.uid()
+      and m.role in ('admin','responsavel')
+  );
+$$;
+
+revoke all on function public.has_household_role(uuid, text[]) from public;
+revoke all on function public.can_write_child(text) from public;
+revoke all on function public.can_manage_child(text) from public;
+grant execute on function public.has_household_role(uuid, text[]) to anon, authenticated;
+grant execute on function public.can_write_child(text) to anon, authenticated;
+grant execute on function public.can_manage_child(text) to anon, authenticated;
+
 -- Perfil automático quando alguém cria conta.
 create or replace function public.handle_new_user()
 returns trigger
@@ -256,9 +319,11 @@ drop policy if exists profiles_update_self on public.profiles;
 create policy profiles_update_self on public.profiles
   for update using (id = auth.uid());
 
--- households: membros leem; qualquer autenticado cria; admin edita.
--- `created_by = auth.uid()` cobre a janela entre criar a família e virar
--- membro dela: sem isso o INSERT funciona mas o RETURNING volta vazio.
+-- households: membros leem; qualquer autenticado cria a própria; admin edita.
+-- O `created_by = auth.uid()` do insert não é decorativo: como
+-- households_select também libera `created_by = auth.uid()`, sem essa
+-- igualdade um terceiro insere uma família apontando para a vítima e ela
+-- passa a aparecer na lista dela.
 drop policy if exists households_select on public.households;
 create policy households_select on public.households
   for select using (
@@ -266,104 +331,112 @@ create policy households_select on public.households
   );
 drop policy if exists households_insert on public.households;
 create policy households_insert on public.households
-  for insert with check (auth.uid() is not null);
+  for insert with check (auth.uid() is not null and created_by = auth.uid());
 drop policy if exists households_update on public.households;
 create policy households_update on public.households
-  for update using (
-    exists (select 1 from public.household_members m
-            where m.household_id = id and m.user_id = auth.uid() and m.role = 'admin')
-  );
+  for update using (public.has_household_role(id, array['admin']))
+  with check (public.has_household_role(id, array['admin']));
 
--- members: membros leem a própria família; o dono entra como admin; admin gerencia.
+-- members: membros leem a própria família; admin gerencia.
+-- Sem autoassociação: só admin adiciona alguém. `user_id = auth.uid()` fica
+-- apenas no delete, para a pessoa poder sair da família.
 drop policy if exists members_select on public.household_members;
 create policy members_select on public.household_members
   for select using (public.is_household_member(household_id));
 drop policy if exists members_insert on public.household_members;
 create policy members_insert on public.household_members
   for insert with check (
-    user_id = auth.uid()
-    or exists (select 1 from public.household_members m
-               where m.household_id = household_id and m.user_id = auth.uid() and m.role = 'admin')
+    public.has_household_role(household_id, array['admin'])
   );
 drop policy if exists members_update on public.household_members;
 create policy members_update on public.household_members
-  for update using (
-    exists (select 1 from public.household_members m
-            where m.household_id = household_id and m.user_id = auth.uid() and m.role = 'admin')
-  );
+  for update using (public.has_household_role(household_id, array['admin']))
+  with check (public.has_household_role(household_id, array['admin']));
 drop policy if exists members_delete on public.household_members;
 create policy members_delete on public.household_members
   for delete using (
     user_id = auth.uid()
-    or exists (select 1 from public.household_members m
-               where m.household_id = household_id and m.user_id = auth.uid() and m.role = 'admin')
+    or public.has_household_role(household_id, array['admin'])
   );
 
--- children: só a família.
+-- children: só a família. Escrita conforme o papel; exclusão mais restrita.
 drop policy if exists children_select on public.children;
 create policy children_select on public.children
   for select using (public.is_household_member(household_id));
 drop policy if exists children_insert on public.children;
 create policy children_insert on public.children
-  for insert with check (public.is_household_member(household_id));
+  for insert with check (public.has_household_role(household_id, array['admin','responsavel']));
 drop policy if exists children_update on public.children;
 create policy children_update on public.children
-  for update using (public.is_household_member(household_id));
+  for update using (public.has_household_role(household_id, array['admin','responsavel','cuidador']))
+  with check (public.has_household_role(household_id, array['admin','responsavel','cuidador']));
 drop policy if exists children_delete on public.children;
 create policy children_delete on public.children
-  for delete using (
-    exists (select 1 from public.household_members m
-            where m.household_id = household_id and m.user_id = auth.uid() and m.role in ('admin','responsavel'))
-  );
+  for delete using (public.has_household_role(household_id, array['admin','responsavel']));
 
--- measurements / events / diary: herdam a permissão da criança.
+-- measurements / events / diary: leitura herda a permissão da criança;
+-- escrita exige papel que escreve; exclusão exige admin ou responsável.
 drop policy if exists measurements_select on public.measurements;
 create policy measurements_select on public.measurements
   for select using (public.can_access_child(child_id));
 drop policy if exists measurements_write on public.measurements;
 create policy measurements_write on public.measurements
-  for insert with check (public.can_access_child(child_id));
+  for insert with check (public.can_write_child(child_id));
 drop policy if exists measurements_update on public.measurements;
 create policy measurements_update on public.measurements
-  for update using (public.can_access_child(child_id));
+  for update using (public.can_write_child(child_id))
+  with check (public.can_write_child(child_id));
 drop policy if exists measurements_delete on public.measurements;
 create policy measurements_delete on public.measurements
-  for delete using (public.can_access_child(child_id));
+  for delete using (public.can_manage_child(child_id));
 
 drop policy if exists events_select on public.events;
 create policy events_select on public.events
   for select using (public.can_access_child(child_id));
 drop policy if exists events_write on public.events;
 create policy events_write on public.events
-  for insert with check (public.can_access_child(child_id));
+  for insert with check (public.can_write_child(child_id));
 drop policy if exists events_update on public.events;
 create policy events_update on public.events
-  for update using (public.can_access_child(child_id));
+  for update using (public.can_write_child(child_id))
+  with check (public.can_write_child(child_id));
 drop policy if exists events_delete on public.events;
 create policy events_delete on public.events
-  for delete using (public.can_access_child(child_id));
+  for delete using (public.can_manage_child(child_id));
 
 drop policy if exists diary_select on public.diary_entries;
 create policy diary_select on public.diary_entries
   for select using (public.can_access_child(child_id));
 drop policy if exists diary_write on public.diary_entries;
 create policy diary_write on public.diary_entries
-  for insert with check (public.can_access_child(child_id));
+  for insert with check (public.can_write_child(child_id));
 drop policy if exists diary_update on public.diary_entries;
 create policy diary_update on public.diary_entries
-  for update using (public.can_access_child(child_id));
+  for update using (public.can_write_child(child_id))
+  with check (public.can_write_child(child_id));
 drop policy if exists diary_delete on public.diary_entries;
 create policy diary_delete on public.diary_entries
-  for delete using (public.can_access_child(child_id));
+  for delete using (public.can_manage_child(child_id));
 
--- "Visualizador" não escreve: reforçado aqui para os papéis de leitura.
+-- Removida: era permissiva de INSERT e se somava por OR com events_write.
+-- Tentava bloquear o visualizador por negação —
+--   not exists (... m.role = 'visualizador')
+-- — mas essa condição é VERDADEIRA para quem não tem vínculo nenhum, então
+-- um estranho conseguia inserir eventos em criança de outra família. Papel
+-- agora é checado positivamente em can_write_child.
 drop policy if exists events_readonly_role on public.events;
-create policy events_readonly_role on public.events
-  for insert with check (
-    not exists (select 1 from public.children c
-                join public.household_members m on m.household_id = c.household_id
-                where c.id = child_id and m.user_id = auth.uid() and m.role = 'visualizador')
-  );
+
+-- ── Privilégios de tabela ────────────────────────────────────────────────
+-- RLS não governa TRUNCATE: a tabela seria esvaziada sem passar por policy
+-- nenhuma. REFERENCES e TRIGGER também não são usados pelo cliente.
+revoke truncate, references, trigger on all tables in schema public
+  from anon, authenticated;
+
+-- As funções de autorização deixam de estar expostas por herança de PUBLIC.
+revoke all on function public.is_household_member(uuid) from public;
+revoke all on function public.can_access_child(text) from public;
+grant execute on function public.is_household_member(uuid) to anon, authenticated;
+grant execute on function public.can_access_child(text) to anon, authenticated;
 
 -- ── Atualização automática de updated_at ─────────────────────────────────
 create or replace function public.touch_updated_at()
